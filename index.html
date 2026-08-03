@@ -547,7 +547,21 @@ CVSS:3.1/<span class="k">AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N</span>   -> 6.1 Med
 
 <span class="c"># Privesc local (precisa já estar logado)</span>
 CVSS:3.1/<span class="k">AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H</span>   -> 7.8 High</code></pre>
-  <div class="tip"><b>Reflexo:</b> comece sempre por <b>AV</b> (é remoto?) e <b>PR/UI</b> (precisa de credencial/clique?). Isso já define ~70% da nota. Depois avalie o tripé <b>C/I/A</b>. Classifique também o <b>tipo</b>: SQLi, XSS, RCE, path traversal, IDOR, CSRF, deserialization, etc.</div>
+
+  <h4 class="a">Vetores de referência — prontos p/ classificar (offline)</h4>
+  <div class="tbl"><table>
+  <tr><th>Vulnerabilidade</th><th>Vetor</th><th>Nota</th></tr>
+  <tr><td>SQLi não-auth, dump total (C/I/A)</td><td><code>AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H</code></td><td><span class="sev crit">9.8</span></td></tr>
+  <tr><td>RCE pré-autenticação</td><td><code>AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H</code></td><td><span class="sev crit">9.8</span></td></tr>
+  <tr><td>Credencial hardcoded exposta remotamente</td><td><code>AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H</code></td><td><span class="sev crit">9.8</span></td></tr>
+  <tr><td>XSS refletido</td><td><code>AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N</code></td><td><span class="sev med">6.1</span></td></tr>
+  <tr><td>XSS armazenado (precisa conta p/ inserir)</td><td><code>AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N</code></td><td><span class="sev med">5.4</span></td></tr>
+  <tr><td>IDOR — lê dados de outro usuário</td><td><code>AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N</code></td><td><span class="sev med">6.5</span></td></tr>
+  <tr><td>Privesc local</td><td><code>AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H</code></td><td><span class="sev high">7.8</span></td></tr>
+  <tr><td>DoS remoto sem auth</td><td><code>AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H</code></td><td><span class="sev high">7.5</span></td></tr>
+  </table></div>
+  <div class="warn"><b>Não infle:</b> se exige conta válida, <code>PR</code> não é N. Use <code>S:C</code> só quando o impacto sai do componente (XSS, SSRF, escape de sandbox). CVSS mede impacto <b>técnico</b>, não de negócio.</div>
+  <div class="tip"><b>Reflexo:</b> comece sempre por <b>AV</b> (é remoto?) e <b>PR/UI</b> (precisa de credencial/clique?). Isso já define ~70% da nota. Depois avalie o tripé <b>C/I/A</b>. Classifique também o <b>tipo</b>: SQLi, XSS, RCE, path traversal, IDOR, CSRF, deserialization, etc. Ao justificar, escreva <b>uma linha por métrica</b> — é onde estão os pontos parciais.</div>
 </section>
 
 <!-- ============ 3a Volatility ============ -->
@@ -659,6 +673,22 @@ CVSS:3.1/<span class="k">AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H</span>   -> 7.8 Hig
   <tr><td><code>7045</code></td><td>Serviço instalado</td><td>persistência / malware</td></tr>
   <tr><td><code>1102</code></td><td>Log de auditoria LIMPO</td><td>anti-forense (alerta!)</td></tr>
   <tr><td><code>4104</code></td><td>PowerShell ScriptBlock</td><td>scripts maliciosos</td></tr>
+  <tr><td><code>4648</code></td><td>Logon com credencial explícita</td><td>runas — movimento lateral</td></tr>
+  <tr><td><code>4698</code></td><td>Tarefa agendada criada</td><td>persistência (cron do Windows)</td></tr>
+  </table></div>
+
+  <h4 class="a">Logon Types (campo do 4624/4625 — decore)</h4>
+  <div class="tbl"><table>
+  <tr><th>Type</th><th>Significado</th><th>Sinal de alerta</th></tr>
+  <tr><td><code>2</code></td><td>Interativo (console local)</td><td>acesso físico ao teclado</td></tr>
+  <tr><td><code>3</code></td><td>Rede (SMB, compartilhamento)</td><td>acesso a recurso pela rede</td></tr>
+  <tr><td><code>4</code></td><td>Batch (tarefa agendada)</td><td>execução automatizada</td></tr>
+  <tr><td><code>5</code></td><td>Serviço</td><td>serviço iniciando</td></tr>
+  <tr><td><code>7</code></td><td>Unlock (desbloqueio de tela)</td><td>—</td></tr>
+  <tr><td><code>8</code></td><td>NetworkCleartext</td><td>senha trafegou em claro (IIS, básico)</td></tr>
+  <tr><td><code>9</code></td><td>NewCredentials (runas /netonly)</td><td>lateral com credencial alternativa</td></tr>
+  <tr><td><code>10</code></td><td>RemoteInteractive (RDP)</td><td>acesso remoto por área de trabalho</td></tr>
+  <tr><td><code>11</code></td><td>CachedInteractive</td><td>logon com cache (offline do DC)</td></tr>
   </table></div>
   <pre><code><span class="c"># PowerShell — consultar Event Log</span>
 <span class="k">Get-WinEvent</span> -FilterHashtable @{LogName='Security';Id=4625} -MaxEvents 50
